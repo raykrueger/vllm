@@ -131,7 +131,7 @@ class SpinCondition:
         is_reader: bool,
         context: zmq.Context,
         notify_address: str,
-        busy_loop_s: float = 1,
+        busy_loop_s: float | None = None,
     ):
         self.is_reader = is_reader
 
@@ -140,7 +140,9 @@ class SpinCondition:
             self.last_read = time.monotonic()
 
             # Time to keep busy-looping on the shm buffer before going idle
-            self.busy_loop_s = busy_loop_s
+            self.busy_loop_s = (
+                envs.VLLM_SHM_BUSY_LOOP_S if busy_loop_s is None else busy_loop_s
+            )
 
             # Readers subscribe to write notifications
             self.local_notify_socket: zmq.Socket = context.socket(SUB)
