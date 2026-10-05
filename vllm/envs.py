@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     VLLM_USE_MODELSCOPE: bool = False
     VLLM_USE_FASTOKENS: bool = False
     VLLM_RINGBUFFER_WARNING_INTERVAL: int = 60
+    VLLM_SHM_BUSY_LOOP_S: float = 1.0
     VLLM_NCCL_SO_PATH: str | None = None
     LD_LIBRARY_PATH: str | None = None
     VLLM_ROCM_SLEEP_MEM_CHUNK_SIZE: int = 256
@@ -738,6 +739,14 @@ environment_variables: dict[str, Callable[[], Any]] = {
     # Interval in seconds to log a warning message when the ring buffer is full
     "VLLM_RINGBUFFER_WARNING_INTERVAL": lambda: int(
         os.environ.get("VLLM_RINGBUFFER_WARNING_INTERVAL", "60")
+    ),
+    # Seconds a shared-memory message queue reader keeps busy-looping
+    # (sched_yield) after its last read before it sleeps on a zmq
+    # notification. While serving, steps arrive well inside the window, so
+    # every reader pins a CPU core. 0 makes readers always sleep until
+    # notified, trading a little wake-up latency per message for idle cores.
+    "VLLM_SHM_BUSY_LOOP_S": lambda: float(
+        os.environ.get("VLLM_SHM_BUSY_LOOP_S", "1")
     ),
     # path to cudatoolkit home directory, under which should be bin, include,
     # and lib directories.
@@ -2326,6 +2335,7 @@ def compile_factors() -> dict[str, object]:
         "VLLM_RPC_BASE_PATH",
         "VLLM_USE_MODELSCOPE",
         "VLLM_RINGBUFFER_WARNING_INTERVAL",
+        "VLLM_SHM_BUSY_LOOP_S",
         "VLLM_DEBUG_DUMP_PATH",
         "VLLM_PORT",
         "VLLM_CACHE_ROOT",
